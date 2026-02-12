@@ -1,6 +1,11 @@
 "use strict";
 
-const initial_max_grid_size = 47;
+const initial_max_grid_size = (window.MAZE_CONFIG &&
+        window.MAZE_CONFIG.grid &&
+        Number.isInteger(window.MAZE_CONFIG.grid.maxSize) &&
+        window.MAZE_CONFIG.grid.maxSize > 4) ?
+    window.MAZE_CONFIG.grid.maxSize :
+    47;
 const menu_width = 323;
 
 let cell_size;

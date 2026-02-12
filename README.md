@@ -9,6 +9,12 @@
 
 This repository contains the source code of a web page that can generate and solve mazes using several algorithms. You can also move the start and the finish or draw your own walls.
 
+Configuration is available in [js/config.js](js/config.js) to customize:
+
+* grid size (`grid.maxSize`)
+* automatic start position (`positions.start`)
+* automatic end position (`positions.end`)
+
 The web page is online at the address : **[angeluriot.com/maze_solver](https://angeluriot.com/maze_solver/)**.
 
 <br/>
