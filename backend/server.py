@@ -8,195 +8,14 @@ from flask_cors import CORS
 import time
 from collections import deque
 
+# Import pathfinding algorithms from the installed package
+from path_finding import bfs, dfs, astar_h1, astar_h2
+
 app = Flask(__name__)
 CORS(app)  # Allow the browser to call this server
 
 # Progress tracking for long-running algorithms
 progress_store = {}
-
-
-def dfs_pathfinding(maze, start, end, job_id=None, return_trace=False):
-    """
-    Depth-First Search pathfinding algorithm.
-    
-    Args:
-        maze: 2D list where 0 = empty, 1 = wall
-        start: tuple (row, col)
-        end: tuple (row, col)
-        job_id: optional ID for progress tracking
-    
-    Returns:
-        List of (row, col) tuples representing the path
-    """
-    rows, cols = len(maze), len(maze[0])
-    visited = set()
-    visited_order = []
-    path = []
-    visited_count = 0
-    total_cells = rows * cols
-    
-    def dfs(pos):
-        nonlocal visited_count
-        
-        if pos == end:
-            path.append(pos)
-            return True
-            
-        if pos in visited or maze[pos[0]][pos[1]] == 1:
-            return False
-        
-        visited.add(pos)
-        visited_order.append(pos)
-        visited_count += 1
-        path.append(pos)
-        
-        # Update progress every 100 cells (for long mazes)
-        if job_id and visited_count % 100 == 0:
-            progress_store[job_id] = {
-                'progress': visited_count / total_cells,
-                'visited': visited_count,
-                'complete': False
-            }
-        
-        row, col = pos
-        # Try all 4 directions: right, down, left, up
-        for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            new_row, new_col = row + dr, col + dc
-            
-            # Check bounds
-            if 0 <= new_row < rows and 0 <= new_col < cols:
-                if dfs((new_row, new_col)):
-                    return True
-        
-        # Backtrack
-        path.pop()
-        return False
-    
-    # Run DFS
-    success = dfs(tuple(start))
-    
-    # Mark as complete
-    if job_id:
-        progress_store[job_id]['complete'] = True
-        progress_store[job_id]['path'] = path if success else []
-    
-    result_path = path if success else []
-
-    if return_trace:
-        return result_path, visited_order
-
-    return result_path
-
-
-def bfs_pathfinding(maze, start, end, return_trace=False):
-    """
-    Breadth-First Search pathfinding (guaranteed shortest path).
-    
-    Args:
-        maze: 2D list where 0 = empty, 1 = wall
-        start: tuple (row, col)
-        end: tuple (row, col)
-    
-    Returns:
-        List of (row, col) tuples representing the shortest path
-    """
-    rows, cols = len(maze), len(maze[0])
-    visited = set()
-    visited_order = []
-    queue = deque([(tuple(start), [tuple(start)])])
-    visited.add(tuple(start))
-    
-    while queue:
-        pos, path = queue.popleft()
-        
-        if pos == tuple(end):
-            if return_trace:
-                return path, visited_order
-            return path
-        
-        row, col = pos
-        # Try all 4 directions
-        for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            new_row, new_col = row + dr, col + dc
-            new_pos = (new_row, new_col)
-            
-            # Check bounds and if not visited
-            if (0 <= new_row < rows and 
-                0 <= new_col < cols and 
-                new_pos not in visited and 
-                maze[new_row][new_col] == 0):
-                
-                visited.add(new_pos)
-                visited_order.append(new_pos)
-                queue.append((new_pos, path + [new_pos]))
-    
-    if return_trace:
-        return [], visited_order
-
-    return []  # No path found
-
-
-def astar_pathfinding(maze, start, end, return_trace=False):
-    """
-    A* pathfinding algorithm (fast + shortest path).
-    
-    Args:
-        maze: 2D list where 0 = empty, 1 = wall
-        start: tuple (row, col)
-        end: tuple (row, col)
-    
-    Returns:
-        List of (row, col) tuples representing the shortest path
-    """
-    import heapq
-    
-    rows, cols = len(maze), len(maze[0])
-    start, end = tuple(start), tuple(end)
-    
-    def heuristic(pos):
-        """Manhattan distance to goal"""
-        return abs(pos[0] - end[0]) + abs(pos[1] - end[1])
-    
-    # Priority queue: (f_score, g_score, position, path)
-    open_set = [(heuristic(start), 0, start, [start])]
-    visited = set()
-    visited_order = []
-    
-    while open_set:
-        f_score, g_score, pos, path = heapq.heappop(open_set)
-        
-        if pos in visited:
-            continue
-            
-        visited.add(pos)
-        visited_order.append(pos)
-        
-        if pos == end:
-            if return_trace:
-                return path, visited_order
-            return path
-        
-        row, col = pos
-        # Try all 4 directions
-        for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-            new_row, new_col = row + dr, col + dc
-            new_pos = (new_row, new_col)
-            
-            # Check bounds and if not visited
-            if (0 <= new_row < rows and 
-                0 <= new_col < cols and 
-                new_pos not in visited and 
-                maze[new_row][new_col] == 0):
-                
-                new_g = g_score + 1
-                new_f = new_g + heuristic(new_pos)
-                heapq.heappush(open_set, 
-                              (new_f, new_g, new_pos, path + [new_pos]))
-    
-    if return_trace:
-        return [], visited_order
-
-    return []  # No path found
 
 
 @app.route('/solve', methods=['POST'])
@@ -231,11 +50,13 @@ def solve():
         
         # Choose algorithm
         if algorithm == 'bfs':
-            path, visited_nodes = bfs_pathfinding(maze, start, end, return_trace=True)
+            path, visited_nodes = bfs(maze, start, end, return_trace=True)
         elif algorithm == 'astar':
-            path, visited_nodes = astar_pathfinding(maze, start, end, return_trace=True)
+            path, visited_nodes = astar_h1(maze, start, end, return_trace=True)
+        elif algorithm == 'astar_h2':
+            path, visited_nodes = astar_h2(maze, start, end, return_trace=True)
         else:  # default to DFS
-            path, visited_nodes = dfs_pathfinding(maze, start, end, return_trace=True)
+            path, visited_nodes = dfs(maze, start, end, return_trace=True)
         
         # Calculate time taken
         elapsed_time = time.time() - start_time
@@ -275,10 +96,19 @@ def solve_async():
         }
         
         # Start pathfinding in background
+        algorithm = data.get('algorithm', 'dfs').lower()
+        target_func = dfs
+        if algorithm == 'bfs':
+            target_func = bfs
+        elif algorithm == 'astar':
+            target_func = astar_h1
+        elif algorithm == 'astar_h2':
+            target_func = astar_h2
+        
         thread = threading.Thread(
-            target=dfs_pathfinding,
+            target=target_func,
             args=(data['maze'], tuple(data['start']), 
-                  tuple(data['end']), job_id)
+                  tuple(data['end']), True)
         )
         thread.daemon = True
         thread.start()
