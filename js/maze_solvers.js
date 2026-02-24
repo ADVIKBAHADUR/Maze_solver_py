@@ -7,27 +7,30 @@ function distance(point_1, point_2) {
 function maze_solvers_interval() {
     my_interval = window.setInterval(function() {
         if (!path) {
-            place_to_cell(node_list[node_list_index][0], node_list[node_list_index][1]).classList.add("cell_algo");
-            node_list_index++;
-
-            if (node_list_index == node_list.length) {
-                if (!found)
+            if (node_list_index >= node_list.length) {
+                if (!found) {
                     clearInterval(my_interval);
-
-                else {
-                    path = true;
-                    place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
+                    return;
                 }
+
+                path = true;
+                place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
+                return;
             }
+
+            let node = node_list[node_list_index];
+            place_to_cell(node[0], node[1]).classList.add("cell_algo");
+            node_list_index++;
         } else {
-            if (path_list_index == path_list.length) {
+            if (path_list_index >= path_list.length) {
                 place_to_cell(target_pos[0], target_pos[1]).classList.add("cell_path");
                 clearInterval(my_interval);
                 return;
             }
 
-            place_to_cell(path_list[path_list_index][0], path_list[path_list_index][1]).classList.remove("cell_algo");
-            place_to_cell(path_list[path_list_index][0], path_list[path_list_index][1]).classList.add("cell_path");
+            let path_node = path_list[path_list_index];
+            place_to_cell(path_node[0], path_node[1]).classList.remove("cell_algo");
+            place_to_cell(path_node[0], path_node[1]).classList.add("cell_path");
             path_list_index++;
         }
     }, 10);
@@ -334,16 +337,26 @@ async function python_solver(algorithm) {
     console.log(`Calling Python backend with ${algorithm}...`);
     const maze = gridToMazeArray();
 
+    const requestData = {
+        maze: maze,
+        start: [start_pos[0], start_pos[1]],
+        end: [target_pos[0], target_pos[1]],
+        algorithm: algorithm
+    };
+
+    console.log('🔍 [JS] Request data:', {
+        algorithm: requestData.algorithm,
+        start: requestData.start,
+        end: requestData.end,
+        mazeSize: [maze.length, maze[0] ? maze[0].length : 0],
+        mazePreview: maze.slice(0, 3).map(row => row.slice(0, 10))
+    });
+
     try {
         const response = await fetch('http://localhost:5000/solve', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                maze: maze,
-                start: [start_pos[0], start_pos[1]],
-                end: [target_pos[0], target_pos[1]],
-                algorithm: algorithm
-            })
+            body: JSON.stringify(requestData)
         });
 
         if (!response.ok)
@@ -351,6 +364,13 @@ async function python_solver(algorithm) {
 
         const result = await response.json();
         console.log(`Python ${algorithm} completed in ${result.time}s`);
+        console.log('🔍 [JS] Response data:', {
+            success: result.success,
+            pathLength: result.path ? result.path.length : 0,
+            visitedLength: result.visited_nodes ? result.visited_nodes.length : 0,
+            path: result.path,
+            error: result.error
+        });
 
         if (result.success && result.path.length > 0) {
             node_list = [];
@@ -420,3 +440,5 @@ function maze_solvers() {
     else if (document.querySelector("#slct_1").value == "8")
         python_astar();
 }
+
+window.maze_solvers = maze_solvers;

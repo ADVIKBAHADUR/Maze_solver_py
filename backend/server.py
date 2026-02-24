@@ -9,7 +9,14 @@ import time
 from collections import deque
 
 # Import pathfinding algorithms from the installed package
+import sys
+print(f"🔍 [SERVER INIT] Python path: {sys.path[:3]}")
+print(f"🔍 [SERVER INIT] Importing from path_finding...")
+
 from path_finding import bfs, dfs, astar_h1, astar_h2
+
+print(f"🔍 [SERVER INIT] BFS module: {bfs.__module__}")
+print(f"🔍 [SERVER INIT] BFS file: {bfs.__code__.co_filename if hasattr(bfs, '__code__') else 'N/A'}")
 
 app = Flask(__name__)
 CORS(app)  # Allow the browser to call this server
@@ -45,21 +52,50 @@ def solve():
         end = tuple(data['end'])
         algorithm = data.get('algorithm', 'dfs').lower()
         
+        print("\n" + "="*60)
+        print("🔍 [SERVER] Received solve request:")
+        print(f"  Algorithm: {algorithm}")
+        print(f"  Start: {start}")
+        print(f"  End: {end}")
+        print(f"  Maze size: {len(maze)}x{len(maze[0]) if maze else 0}")
+        print(f"  Start cell value: {maze[start[0]][start[1]] if maze else 'N/A'}")
+        print(f"  End cell value: {maze[end[0]][end[1]] if maze else 'N/A'}")
+        print("="*60)
+        
         # Start timing
         start_time = time.time()
-        
+        print(algorithm)
         # Choose algorithm
-        if algorithm == 'bfs':
-            path, visited_nodes = bfs(maze, start, end, return_trace=True)
-        elif algorithm == 'astar':
-            path, visited_nodes = astar_h1(maze, start, end, return_trace=True)
-        elif algorithm == 'astar_h2':
-            path, visited_nodes = astar_h2(maze, start, end, return_trace=True)
-        else:  # default to DFS
-            path, visited_nodes = dfs(maze, start, end, return_trace=True)
+        try:
+            if algorithm == 'bfs':
+                print("starting bfs")
+                print(f"🔍 [SERVER] About to call: {bfs}")
+                print(f"🔍 [SERVER] BFS type: {type(bfs)}")
+                path, visited_nodes = bfs(maze, start, end, return_trace=True)
+                print(f"🔍 [SERVER] BFS returned: path={len(path) if path else 0}, visited={len(visited_nodes) if visited_nodes else 0}")
+                print("end bfs")
+            elif algorithm == 'astar':
+                path, visited_nodes = astar_h1(maze, start, end, return_trace=True)
+            elif algorithm == 'astar_h2':
+                path, visited_nodes = astar_h2(maze, start, end, return_trace=True)
+            else:  # default to DFS
+                path, visited_nodes = dfs(maze, start, end, return_trace=True)
+        except Exception as algo_error:
+            print(f"❌ [SERVER] Algorithm error: {algo_error}")
+            import traceback
+            traceback.print_exc()
+            raise
         
         # Calculate time taken
         elapsed_time = time.time() - start_time
+        
+        print(f"🔍 [SERVER] Algorithm returned:")
+        print(f"  Path length: {len(path)}")
+        print(f"  Visited nodes: {len(visited_nodes)}")
+        print(f"  Path: {path[:5]}{'...' if len(path) > 5 else ''}")
+        print(f"  Success: {len(path) > 0}")
+        print(f"  Time: {round(elapsed_time, 3)}s")
+        print("="*60 + "\n")
         
         return jsonify({
             'path': path,
