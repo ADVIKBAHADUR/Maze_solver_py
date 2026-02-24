@@ -63,7 +63,7 @@ def solve():
         print("="*60)
         
         # Start timing
-        start_time = time.time()
+        start_time = time.perf_counter()
         print(algorithm)
         # Choose algorithm
         try:
@@ -87,20 +87,20 @@ def solve():
             raise
         
         # Calculate time taken
-        elapsed_time = time.time() - start_time
+        elapsed_time = time.perf_counter() - start_time
         
         print(f"🔍 [SERVER] Algorithm returned:")
         print(f"  Path length: {len(path)}")
         print(f"  Visited nodes: {len(visited_nodes)}")
         print(f"  Path: {path[:5]}{'...' if len(path) > 5 else ''}")
         print(f"  Success: {len(path) > 0}")
-        print(f"  Time: {round(elapsed_time, 3)}s")
+        print(f"  Time: {elapsed_time:.6f}s")
         print("="*60 + "\n")
         
         return jsonify({
             'path': path,
             'visited_nodes': visited_nodes,
-            'time': round(elapsed_time, 3),
+            'time': elapsed_time,
             'visited': len(path),
             'success': len(path) > 0
         })

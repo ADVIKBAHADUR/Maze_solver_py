@@ -363,6 +363,9 @@ async function python_solver(algorithm) {
             throw new Error(`Server returned ${response.status}`);
 
         const result = await response.json();
+        // Expose result for Selenium
+        window.lastPythonResult = result;
+
         console.log(`Python ${algorithm} completed in ${result.time}s`);
         console.log('🔍 [JS] Response data:', {
             success: result.success,
@@ -432,7 +435,6 @@ function maze_solvers() {
     else if (document.querySelector("#slct_1").value == "5")
         a_star();
 
-    // ADD THESE THREE LINES:
     else if (document.querySelector("#slct_1").value == "6")
         python_dfs();
     else if (document.querySelector("#slct_1").value == "7")
