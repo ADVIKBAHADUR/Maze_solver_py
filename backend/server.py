@@ -13,7 +13,17 @@ import sys
 print(f"🔍 [SERVER INIT] Python path: {sys.path[:3]}")
 print(f"🔍 [SERVER INIT] Importing from path_finding...")
 
-from path_finding import bfs, dfs, astar_h1, astar_h2
+from path_finding import bfs, dfs, astar_h1, astar_h2, mdp_value_iteration, mdp_policy_iteration
+import path_finding.mdp as _mdp_module
+
+# The path_finding __init__.py shadows the submodule names with function objects,
+# so `path_finding.bfs` resolves to the *function*, not the module.
+# Use importlib to get the actual submodule (and its LAST_SEARCH_STATS).
+import importlib
+_bfs_module = importlib.import_module('path_finding.bfs')
+_dfs_module = importlib.import_module('path_finding.dfs')
+_h1_module  = importlib.import_module('path_finding.Astar_h1')
+_h2_module  = importlib.import_module('path_finding.Astar_h2')
 
 print(f"🔍 [SERVER INIT] BFS module: {bfs.__module__}")
 print(f"🔍 [SERVER INIT] BFS file: {bfs.__code__.co_filename if hasattr(bfs, '__code__') else 'N/A'}")
@@ -68,18 +78,23 @@ def solve():
         # Choose algorithm
         try:
             if algorithm == 'bfs':
-                print("starting bfs")
-                print(f"🔍 [SERVER] About to call: {bfs}")
-                print(f"🔍 [SERVER] BFS type: {type(bfs)}")
                 path, visited_nodes = bfs(maze, start, end, return_trace=True)
-                print(f"🔍 [SERVER] BFS returned: path={len(path) if path else 0}, visited={len(visited_nodes) if visited_nodes else 0}")
-                print("end bfs")
+                search_stats = _bfs_module.LAST_SEARCH_STATS
             elif algorithm == 'astar':
                 path, visited_nodes = astar_h1(maze, start, end, return_trace=True)
+                search_stats = _h1_module.LAST_SEARCH_STATS
             elif algorithm == 'astar_h2':
                 path, visited_nodes = astar_h2(maze, start, end, return_trace=True)
+                search_stats = _h2_module.LAST_SEARCH_STATS
+            elif algorithm == 'mdp_vi':
+                path, visited_nodes = mdp_value_iteration(maze, start, end, return_trace=True)
+                search_stats = _mdp_module.LAST_MDP_STATS
+            elif algorithm == 'mdp_pi':
+                path, visited_nodes = mdp_policy_iteration(maze, start, end, return_trace=True)
+                search_stats = _mdp_module.LAST_MDP_STATS
             else:  # default to DFS
                 path, visited_nodes = dfs(maze, start, end, return_trace=True)
+                search_stats = _dfs_module.LAST_SEARCH_STATS
         except Exception as algo_error:
             print(f"❌ [SERVER] Algorithm error: {algo_error}")
             import traceback
@@ -97,13 +112,35 @@ def solve():
         print(f"  Time: {elapsed_time:.6f}s")
         print("="*60 + "\n")
         
-        return jsonify({
-            'path': path,
-            'visited_nodes': visited_nodes,
-            'time': elapsed_time,
-            'visited': len(path),
-            'success': len(path) > 0
-        })
+        # Attach MDP-specific planning stats if available
+        mdp_stats = {}
+        if algorithm in ('mdp_vi', 'mdp_pi'):
+            s = _mdp_module.LAST_MDP_STATS
+            mdp_stats = {
+                'planning_iters':    s.get('planning_iters',    0),
+                'planning_time':     s.get('planning_time',     0.0),
+                'extraction_time':   s.get('extraction_time',   0.0),
+                'cumulative_reward': s.get('cumulative_reward', 0.0),
+                'discounted_return': s.get('discounted_return', 0.0),
+                'states_valued':     s.get('states_valued',     0),
+            }
+
+        # Peak frontier and memory — available for all algorithms
+        peak_frontier    = search_stats.get('peak_frontier',     0)
+        peak_memory_bytes = search_stats.get('peak_memory_bytes', 0)
+        print(f"  Peak frontier: {peak_frontier}  Peak memory: {peak_memory_bytes/1024:.1f} KB")
+
+        response = {
+            'path':               path,
+            'visited_nodes':      visited_nodes,
+            'time':               elapsed_time,
+            'visited':            len(path),
+            'success':            len(path) > 0,
+            'peak_frontier':      peak_frontier,
+            'peak_memory_bytes':  peak_memory_bytes,
+        }
+        response.update(mdp_stats)
+        return jsonify(response)
         
     except Exception as e:
         return jsonify({

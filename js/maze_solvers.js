@@ -365,6 +365,14 @@ async function python_solver(algorithm) {
         const result = await response.json();
         // Expose result for Selenium
         window.lastPythonResult = result;
+        // Accumulate for overlay (keyed by algo name matching ALGO_COLORS)
+        if (!window.allAlgoResults) window.allAlgoResults = {};
+        var overlayKey = {
+            'dfs': 'DFS', 'bfs': 'BFS',
+            'astar': 'AStar_h1', 'astar_h2': 'AStar_h2',
+            'mdp_vi': 'MDP_VI', 'mdp_pi': 'MDP_PI'
+        }[algorithm] || algorithm;
+        window.allAlgoResults[overlayKey] = result;
 
         console.log(`Python ${algorithm} completed in ${result.time}s`);
         console.log('🔍 [JS] Response data:', {
@@ -410,11 +418,17 @@ async function python_solver(algorithm) {
     }
 }
 
-function python_dfs() { python_solver('dfs'); }
+function python_dfs()        { python_solver('dfs'); }
 
-function python_bfs() { python_solver('bfs'); }
+function python_bfs()        { python_solver('bfs'); }
 
-function python_astar() { python_solver('astar'); }
+function python_astar()      { python_solver('astar'); }
+
+function python_astar_h2()   { python_solver('astar_h2'); }
+
+function python_mdp_vi()     { python_solver('mdp_vi'); }
+
+function python_mdp_pi()     { python_solver('mdp_pi'); }
 
 function maze_solvers() {
     clear_grid();
@@ -425,22 +439,17 @@ function maze_solvers() {
         place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
         place_to_cell(target_pos[0], target_pos[1]).classList.add("cell_path");
     } else if (document.querySelector("#slct_1").value == "1")
-        breadth_first();
-    else if (document.querySelector("#slct_1").value == "2")
-        bidirectional_breadth_first();
-    else if (document.querySelector("#slct_1").value == "3")
-        greedy_best_first();
-    else if (document.querySelector("#slct_1").value == "4")
-        dijkstra();
-    else if (document.querySelector("#slct_1").value == "5")
-        a_star();
-
-    else if (document.querySelector("#slct_1").value == "6")
         python_dfs();
-    else if (document.querySelector("#slct_1").value == "7")
+    else if (document.querySelector("#slct_1").value == "2")
         python_bfs();
-    else if (document.querySelector("#slct_1").value == "8")
+    else if (document.querySelector("#slct_1").value == "3")
         python_astar();
+    else if (document.querySelector("#slct_1").value == "4")
+        python_astar_h2();
+    else if (document.querySelector("#slct_1").value == "5")
+        python_mdp_vi();
+    else if (document.querySelector("#slct_1").value == "6")
+        python_mdp_pi();
 }
 
 window.maze_solvers = maze_solvers;

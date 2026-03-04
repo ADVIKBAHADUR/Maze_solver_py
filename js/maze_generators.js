@@ -325,12 +325,65 @@ function recursive_division() {
     }
 
     sub_recursive_division(0, 0, grid.length - 1, grid[0].length - 1);
-    timeouts.push(setTimeout(function() { generating = false;
-        timeouts = [] }, time));
+    timeouts.push(setTimeout(function() {
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+        generating = false;
+        timeouts = [];
+    }, time));
+}
+
+function apply_path_count(n) {
+    n = parseInt(n) || 1;
+
+    if (n === 0) {
+        // Unsolvable: seal every open direct neighbour of start_pos so no path exists
+        var dirs = [[0,-1],[1,0],[0,1],[-1,0]];
+        for (var d = 0; d < dirs.length; d++) {
+            var nx = start_pos[0] + dirs[d][0];
+            var ny = start_pos[1] + dirs[d][1];
+            if (nx >= 0 && nx < grid.length && ny >= 0 && ny < grid[0].length)
+                if (grid[nx][ny] !== -1)
+                    add_wall(nx, ny);
+        }
+        return;
+    }
+
+    if (n <= 1) return;  // perfect maze – exactly one path, nothing to do
+
+    // Collect wall cells that bridge two open cells (horizontal or vertical)
+    // Removing them creates an extra route, raising the path count
+    var candidates = [];
+    for (var x = 1; x < grid.length - 1; x++) {
+        for (var y = 1; y < grid[0].length - 1; y++) {
+            if (grid[x][y] !== -1) continue;
+            if (x % 2 === 0 && y % 2 === 1) {
+                // horizontal slot between two passage columns
+                if (grid[x-1][y] !== -1 && grid[x+1][y] !== -1)
+                    candidates.push([x, y]);
+            } else if (x % 2 === 1 && y % 2 === 0) {
+                // vertical slot between two passage rows
+                if (grid[x][y-1] !== -1 && grid[x][y+1] !== -1)
+                    candidates.push([x, y]);
+            }
+        }
+    }
+
+    // Fisher-Yates shuffle so we pick randomly
+    for (var i = candidates.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = candidates[i]; candidates[i] = candidates[j]; candidates[j] = tmp;
+    }
+
+    // Remove n-1 walls to create ≈n available routes
+    var holes = Math.min(n - 1, candidates.length);
+    for (var h = 0; h < holes; h++)
+        remove_wall(candidates[h][0], candidates[h][1]);
 }
 
 function maze_generators() {
-    let start_temp = start_pos;
+    // Reset accumulated results so the overlay reflects the new maze only
+    window.allAlgoResults = {};
+    var start_temp = start_pos;
     let target_temp = target_pos;
     hidden_clear();
     generating = true;
@@ -372,21 +425,21 @@ function maze_generators() {
 
     grid_clean = false;
 
-    if (document.querySelector("#slct_2").value == "1")
+    if (document.querySelector("#slct_2").value == "1") {
         randomized_depth_first();
-
-    else if (document.querySelector("#slct_2").value == "2")
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+    } else if (document.querySelector("#slct_2").value == "2") {
         kruskal_algorithm();
-
-    else if (document.querySelector("#slct_2").value == "3")
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+    } else if (document.querySelector("#slct_2").value == "3") {
         prim_algorithm();
-
-    else if (document.querySelector("#slct_2").value == "4")
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+    } else if (document.querySelector("#slct_2").value == "4") {
         wilson_algorithm();
-
-    else if (document.querySelector("#slct_2").value == "5")
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+    } else if (document.querySelector("#slct_2").value == "5") {
         aldous_broder_algorithm();
-
-    else if (document.querySelector("#slct_2").value == "6")
-        recursive_division();
+        apply_path_count(window.TARGET_PATH_COUNT || 1);
+    } else if (document.querySelector("#slct_2").value == "6")
+        recursive_division();  // apply_path_count called inside final timeout
 }

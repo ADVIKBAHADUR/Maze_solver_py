@@ -92,3 +92,64 @@
 	background-image: url(../resources/shapes/target.svg);
 	background-size: calc(100%) calc(100%);
 }
+
+/* ── Per-algorithm overlay colours ──────────────────────────────────────── */
+/* Used by overlay.js to paint each algorithm's path in a distinct colour.  */
+/* For cells shared by multiple paths, overlay.js applies an inline          */
+/* linear-gradient so these individual rules act as fallbacks.               */
+
+.path_DFS      { background: rgb(255, 140,   0) !important; }   /* orange       */
+.path_BFS      { background: rgb(  0, 174, 239) !important; }   /* sky blue     */
+.path_AStar_h1 { background: rgb( 80, 200,  80) !important; }   /* lime green   */
+.path_AStar_h2 { background: rgb(160,  60, 200) !important; }   /* purple       */
+.path_MDP_VI   { background: rgb(220,  50,  50) !important; }   /* red          */
+.path_MDP_PI   { background: rgb(  0, 180, 160) !important; }   /* teal         */
+
+/* Legend panel */
+#overlay_legend
+{
+	display: none;
+	position: fixed;
+	right: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: rgba(20, 25, 45, 0.92);
+	border: 1px solid rgba(255,255,255,0.15);
+	border-radius: 8px;
+	padding: 12px 16px;
+	z-index: 100;
+	min-width: 180px;
+	box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+#overlay_legend h4
+{
+	margin: 0 0 10px 0;
+	color: #fff;
+	font-size: 13px;
+	font-family: sans-serif;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	border-bottom: 1px solid rgba(255,255,255,0.2);
+	padding-bottom: 6px;
+}
+
+.legend_row
+{
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 5px 0;
+	font-family: sans-serif;
+	font-size: 12px;
+	color: #eee;
+}
+
+.legend_swatch
+{
+	width: 16px;
+	height: 16px;
+	border-radius: 3px;
+	flex-shrink: 0;
+	border: 1px solid rgba(255,255,255,0.3);
+}
