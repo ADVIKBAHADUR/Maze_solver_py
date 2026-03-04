@@ -21,6 +21,7 @@
     <script type="text/javascript" src="js/properties.js"></script>
     <script type="text/javascript" src="js/maze_generators.js"></script>
     <script type="text/javascript" src="js/maze_solvers.js"></script>
+    <script type="text/javascript" src="js/overlay.js"></script>
     <script type="text/javascript" src="js/menu.js"></script>
     <script type="text/javascript" src="js/visualizer.js"></script>
     <script type="text/javascript" src="js/script.js"></script>
@@ -37,16 +38,14 @@
         <div class="choice" id="choice_1">
             <span class="choice_label" id="choice_label_1">Maze solving algorithm</span>
             <label class="select" for="slct_1">
-					<select id="slct_1">
-						<option value="1">Breadth-First (JS)</option>
-						<option value="2">Bidirectional Breadth-First (JS)</option>
-						<option value="3">Greedy Best-First (JS)</option>
-						<option value="4">Dijkstra (JS)</option>
-						<option value="5">A* (JS)</option>
-						<option value="6">DFS (Python) 🐍</option>
-						<option value="7">BFS (Python) 🐍</option>
-						<option value="8">A* (Python) 🐍</option>
-					</select>
+                    <select id="slct_1">
+                        <option value="1">DFS (Python) 🐍</option>
+                        <option value="2">BFS (Python) 🐍</option>
+                        <option value="3">A* h1 Manhattan (Python) 🐍</option>
+                        <option value="4">A* h2 Corridor-Aware (Python) 🐍</option>
+                        <option value="5">MDP Value Iteration (Python) 🐍</option>
+                        <option value="6">MDP Policy Iteration (Python) 🐍</option>
+                    </select>
 					<svg>
 						<use xlink:href="#select-arrow-down"></use>
 					</svg>
@@ -79,6 +78,14 @@
             <button class="my_button" id="play">Play</button>
         </div>
 
+        <div id=button_3>
+            <button class="my_button" id="overlay_btn"
+                    onclick="show_overlay(window.allAlgoResults || {})"
+                    title="Show all algorithm paths overlaid on one grid">
+                All Paths
+            </button>
+        </div>
+
         <svg class="sprites">
 				<symbol id="select-arrow-down" viewbox="0 0 10 6">
 					<polyline points="1 1 5 5 9 1"></polyline>
@@ -88,6 +95,11 @@
 
     <div id="visualizer">
         <div id="grid"></div>
+    </div>
+
+    <!-- Overlay legend: populated dynamically by overlay.js -->
+    <div id="overlay_legend">
+        <h4>Path Legend</h4>
     </div>
 
     <div id="hider"></div>

@@ -7,27 +7,30 @@ function distance(point_1, point_2) {
 function maze_solvers_interval() {
     my_interval = window.setInterval(function() {
         if (!path) {
-            place_to_cell(node_list[node_list_index][0], node_list[node_list_index][1]).classList.add("cell_algo");
-            node_list_index++;
-
-            if (node_list_index == node_list.length) {
-                if (!found)
+            if (node_list_index >= node_list.length) {
+                if (!found) {
                     clearInterval(my_interval);
-
-                else {
-                    path = true;
-                    place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
+                    return;
                 }
+
+                path = true;
+                place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
+                return;
             }
+
+            let node = node_list[node_list_index];
+            place_to_cell(node[0], node[1]).classList.add("cell_algo");
+            node_list_index++;
         } else {
-            if (path_list_index == path_list.length) {
+            if (path_list_index >= path_list.length) {
                 place_to_cell(target_pos[0], target_pos[1]).classList.add("cell_path");
                 clearInterval(my_interval);
                 return;
             }
 
-            place_to_cell(path_list[path_list_index][0], path_list[path_list_index][1]).classList.remove("cell_algo");
-            place_to_cell(path_list[path_list_index][0], path_list[path_list_index][1]).classList.add("cell_path");
+            let path_node = path_list[path_list_index];
+            place_to_cell(path_node[0], path_node[1]).classList.remove("cell_algo");
+            place_to_cell(path_node[0], path_node[1]).classList.add("cell_path");
             path_list_index++;
         }
     }, 10);
@@ -334,23 +337,51 @@ async function python_solver(algorithm) {
     console.log(`Calling Python backend with ${algorithm}...`);
     const maze = gridToMazeArray();
 
+    const requestData = {
+        maze: maze,
+        start: [start_pos[0], start_pos[1]],
+        end: [target_pos[0], target_pos[1]],
+        algorithm: algorithm
+    };
+
+    console.log('🔍 [JS] Request data:', {
+        algorithm: requestData.algorithm,
+        start: requestData.start,
+        end: requestData.end,
+        mazeSize: [maze.length, maze[0] ? maze[0].length : 0],
+        mazePreview: maze.slice(0, 3).map(row => row.slice(0, 10))
+    });
+
     try {
         const response = await fetch('http://localhost:5000/solve', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                maze: maze,
-                start: [start_pos[0], start_pos[1]],
-                end: [target_pos[0], target_pos[1]],
-                algorithm: algorithm
-            })
+            body: JSON.stringify(requestData)
         });
 
         if (!response.ok)
             throw new Error(`Server returned ${response.status}`);
 
         const result = await response.json();
+        // Expose result for Selenium
+        window.lastPythonResult = result;
+        // Accumulate for overlay (keyed by algo name matching ALGO_COLORS)
+        if (!window.allAlgoResults) window.allAlgoResults = {};
+        var overlayKey = {
+            'dfs': 'DFS', 'bfs': 'BFS',
+            'astar': 'AStar_h1', 'astar_h2': 'AStar_h2',
+            'mdp_vi': 'MDP_VI', 'mdp_pi': 'MDP_PI'
+        }[algorithm] || algorithm;
+        window.allAlgoResults[overlayKey] = result;
+
         console.log(`Python ${algorithm} completed in ${result.time}s`);
+        console.log('🔍 [JS] Response data:', {
+            success: result.success,
+            pathLength: result.path ? result.path.length : 0,
+            visitedLength: result.visited_nodes ? result.visited_nodes.length : 0,
+            path: result.path,
+            error: result.error
+        });
 
         if (result.success && result.path.length > 0) {
             node_list = [];
@@ -387,11 +418,17 @@ async function python_solver(algorithm) {
     }
 }
 
-function python_dfs() { python_solver('dfs'); }
+function python_dfs()        { python_solver('dfs'); }
 
-function python_bfs() { python_solver('bfs'); }
+function python_bfs()        { python_solver('bfs'); }
 
-function python_astar() { python_solver('astar'); }
+function python_astar()      { python_solver('astar'); }
+
+function python_astar_h2()   { python_solver('astar_h2'); }
+
+function python_mdp_vi()     { python_solver('mdp_vi'); }
+
+function python_mdp_pi()     { python_solver('mdp_pi'); }
 
 function maze_solvers() {
     clear_grid();
@@ -402,21 +439,17 @@ function maze_solvers() {
         place_to_cell(start_pos[0], start_pos[1]).classList.add("cell_path");
         place_to_cell(target_pos[0], target_pos[1]).classList.add("cell_path");
     } else if (document.querySelector("#slct_1").value == "1")
-        breadth_first();
-    else if (document.querySelector("#slct_1").value == "2")
-        bidirectional_breadth_first();
-    else if (document.querySelector("#slct_1").value == "3")
-        greedy_best_first();
-    else if (document.querySelector("#slct_1").value == "4")
-        dijkstra();
-    else if (document.querySelector("#slct_1").value == "5")
-        a_star();
-
-    // ADD THESE THREE LINES:
-    else if (document.querySelector("#slct_1").value == "6")
         python_dfs();
-    else if (document.querySelector("#slct_1").value == "7")
+    else if (document.querySelector("#slct_1").value == "2")
         python_bfs();
-    else if (document.querySelector("#slct_1").value == "8")
+    else if (document.querySelector("#slct_1").value == "3")
         python_astar();
+    else if (document.querySelector("#slct_1").value == "4")
+        python_astar_h2();
+    else if (document.querySelector("#slct_1").value == "5")
+        python_mdp_vi();
+    else if (document.querySelector("#slct_1").value == "6")
+        python_mdp_pi();
 }
+
+window.maze_solvers = maze_solvers;
